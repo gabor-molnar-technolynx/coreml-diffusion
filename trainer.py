@@ -5,7 +5,7 @@ from torch.optim import Adam
 import os
 
 class Trainer():
-    def __init__(self, model_dir, t_steps,t_start,t_end, img_size, batch_size):
+    def __init__(self, model_dir, t_steps, t_start, t_end, img_size, batch_size):
         self.model_dir = model_dir
         self.model = SimpleUnet()
 
@@ -18,7 +18,7 @@ class Trainer():
         self.optimizer = Adam(self.model.parameters(), lr=0.001)
 
         # Pre-calculate different terms for closed form
-        self.betas = torch.linspace(0.0001, 0.02, t_steps)
+        self.betas = torch.linspace(t_start, t_end, t_steps)
         self.alphas = 1. - self.betas
         self.alphas_cumprod = torch.cumprod(self.alphas, axis=0)
         self.alphas_cumprod_prev = F.pad(self.alphas_cumprod[:-1], (1, 0), value=1.0)
@@ -36,10 +36,12 @@ class Trainer():
     def save_checkpoint(self):
         torch.save(self.optimizer.state_dict(), os.path.join(self.model_dir, "opt.pt"))
         torch.save(self.model.state_dict(), os.path.join(self.model_dir, "model.pt"))
+        print("Model checkpoint saved successfully.")
 
     def load_checkpoint(self):
         self.model.load_state_dict(torch.load(os.path.join(self.model_dir, "model.pt"), map_location=self.map_device))
         self.optimizer.load_state_dict(torch.load(os.path.join(self.model_dir, "opt.pt"), map_location=self.map_device))
+        print("Model checkpoint loaded successfully.")
 
     def get_index_from_list(self, vals, t, x_shape):
         batch_size = t.shape[0]
