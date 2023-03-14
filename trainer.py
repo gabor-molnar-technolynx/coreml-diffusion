@@ -2,7 +2,11 @@ import torch
 from unet import SimpleUnet
 import torch.nn.functional as F
 from torch.optim import Adam
+from shutil import rmtree
 import os
+from matplotlib import pyplot as plt
+from torchvision import transforms
+import numpy as np
 
 class Trainer():
     def __init__(self, model_dir, t_steps, t_start, t_end, img_size, batch_size):
@@ -33,15 +37,103 @@ class Trainer():
         self.T_END = t_end
         self.T_STEPS = t_steps
 
+
+    @torch.no_grad()
+    def save_samples(self, checkpoint_path):
+            # Sample noise
+            img_size = self.IMG_SIZE
+            img = torch.randn((1, 3, img_size, img_size), device=self.map_device)
+            num_images = 10
+            fig, ax = plt.subplots(num_images)
+            stepsize = int(self.T_STEPS / num_images)
+
+            for i in range(0, self.T_STEPS)[::-1]:
+                t = torch.full((1,), i, device=self.map_device, dtype=torch.long)
+                img = self.sample_timestep(img, t)
+                if i % stepsize == 0:
+                    plt.subplot(1, num_images, int(i / stepsize) + 1)
+                    ax[ int(i / stepsize)] = plt.imshow(self.to_tensor_image(img.detach().cpu()))
+            # plt.show()
+            fig.savefig(os.path.join(checkpoint_path, "test_samples.png"))
+
+
+    def to_tensor_image(self, image):
+        reverse_transforms = transforms.Compose([
+            transforms.Lambda(lambda t: (t + 1) / 2),
+            transforms.Lambda(lambda t: t.permute(1, 2, 0)),  # CHW to HWC
+            transforms.Lambda(lambda t: t * 255.),
+            transforms.Lambda(lambda t: t.numpy().astype(np.uint8)),
+            transforms.ToPILImage(),
+        ])
+
+        # Take first image of batch
+        if len(image.shape) == 4:
+            image = image[0, :, :, :]
+
+        return reverse_transforms(image)
+
+    def log_history(self, loss):
+        fname = os.path.join(self.model_dir, "log.npy")
+        logs = None
+        if os.path.isfile(fname):
+            logs = np.load(fname)
+
+        if logs is None:
+            logs = [loss]
+        else:
+            # logs = np.concatenate([logs, loss], axis=0)
+            logs = np.append(logs, loss)
+        np.save(fname, logs)
+
+        plot_fname = os.path.join(self.model_dir, "plot.png")
+
+        plt.clf()
+        plt.plot(logs)
+        # plt.show()
+
+        plt.savefig(plot_fname)
+
+
     def save_checkpoint(self):
-        torch.save(self.optimizer.state_dict(), os.path.join(self.model_dir, "opt.pt"))
-        torch.save(self.model.state_dict(), os.path.join(self.model_dir, "model.pt"))
+        idx = self.find_last_checkpoint() + 1
+        checkpoint_path = os.path.join(self.model_dir, str(idx))
+        os.mkdir(checkpoint_path)
+        torch.save(self.optimizer.state_dict(), os.path.join(checkpoint_path, "opt.pt"))
+        torch.save(self.model.state_dict(), os.path.join(checkpoint_path, "model.pt"))
         print("Model checkpoint saved successfully.")
+        #TODO: dont forget to reenable for training
+        self.save_samples(checkpoint_path)
 
     def load_checkpoint(self):
-        self.model.load_state_dict(torch.load(os.path.join(self.model_dir, "model.pt"), map_location=self.map_device))
-        self.optimizer.load_state_dict(torch.load(os.path.join(self.model_dir, "opt.pt"), map_location=self.map_device))
-        print("Model checkpoint loaded successfully.")
+        idx = self.find_last_checkpoint()
+        if idx > 0:
+            checkpoint_path = os.path.join(self.model_dir, str(idx))
+            self.model.load_state_dict(torch.load(os.path.join(checkpoint_path, "model.pt"), map_location=self.map_device))
+            self.optimizer.load_state_dict(torch.load(os.path.join(checkpoint_path, "opt.pt"), map_location=self.map_device))
+            print(f"Model checkpoint loaded successfully. Continuing from checkpoint {idx}")
+        else:
+            print("There was no checkpoint to load, using newly initialized model weights.")
+
+    def find_last_checkpoint(self):
+        checkpoints = os.listdir(self.model_dir)
+        checkpoints = [int(x) for x in checkpoints if os.path.isdir(os.path.join(self.model_dir, x))]
+        if len(checkpoints) > 0:
+            checkpoints.sort()
+            last_checkpoint = checkpoints[-1]
+            return last_checkpoint
+        else:
+            return 0
+
+    def clear_checkpoints(self):
+        if os.path.isfile(os.path.join(self.model_dir, "log.npy")):
+            os.remove(os.path.join(self.model_dir, "log.npy"))
+
+        checkpoints = os.listdir(self.model_dir)
+        checkpoints = [int(x) for x in checkpoints if os.path.isdir(os.path.join(self.model_dir, x))]
+        for idx in checkpoints:
+            checkpoint_path = os.path.join(self.model_dir, str(idx))
+            if os.path.isdir(checkpoint_path):
+                rmtree(checkpoint_path, ignore_errors=True)
 
     def get_index_from_list(self, vals, t, x_shape):
         batch_size = t.shape[0]

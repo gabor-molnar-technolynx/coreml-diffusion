@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 from dataset import CelebDataset
 from torchvision import transforms
 from torch.utils.data import DataLoader
-import numpy as np
 import argparse
 from trainer import Trainer
 from tqdm import tqdm
@@ -13,13 +12,15 @@ parser.add_argument("--export_model", action="store_true", help="force training 
 parser.add_argument("--restart_training", action="store_true", help="force training on CPU")
 parser.add_argument("--train", action="store_true", help="force training on CPU")
 parser.add_argument("--epochs", default=50, type=int, help="number of training epochs")
+#TODO: save different checkpoint dirs and images sampled at that checkpoint!
+parser.add_argument("--model_dir", default="model", help="Directory to save the checkpoints in.")
 parser.add_argument("--T", default=300, type=int, help="Number of timesteps.")
-parser.add_argument("--IMG_SIZE", default=64, type=int, help="Height and width of the images to train with.")
+parser.add_argument("--IMG_SIZE", default=32, type=int, help="Height and width of the images to train with.")
 parser.add_argument("--BATCH_SIZE", default=2, type=int, help="Batch count for the training process.")
-parser.add_argument("--START", default=0.0001, type=int, help="Beta at the first timestep.")
-parser.add_argument("--END", default=0.02, type=int, help="Beta at the last timestep.")
+parser.add_argument("--START", default=0.0001, type=float, help="Beta at the first timestep.")
+parser.add_argument("--END", default=0.02, type=float, help="Beta at the last timestep.")
 parser.add_argument("--data_path", default="../../YoutubeProj/data/CelebAMask-HQ/CelebAMask-HQ/CelebA-HQ-img",
-                    type=int, help="Path to the dataset folder.")
+                    help="Path to the dataset folder.")
 args = parser.parse_args()
 
 def show_images(datset, num_samples=20, cols=4):
@@ -38,40 +39,9 @@ def show_images(datset, num_samples=20, cols=4):
     plt.show()
     print("done")
 
-def show_tensor_image(image):
-    reverse_transforms = transforms.Compose([
-        transforms.Lambda(lambda t: (t + 1) / 2),
-        transforms.Lambda(lambda t: t.permute(1, 2, 0)), # CHW to HWC
-        transforms.Lambda(lambda t: t * 255.),
-        transforms.Lambda(lambda t: t.numpy().astype(np.uint8)),
-        transforms.ToPILImage(),
-    ])
-
-    # Take first image of batch
-    if len(image.shape) == 4:
-        image = image[0, :, :, :]
-    plt.imshow(reverse_transforms(image))
-
-@torch.no_grad()
-def sample_plot_image(trainer, device):
-    # Sample noise
-    img_size = args.IMG_SIZE
-    img = torch.randn((1, 3, img_size, img_size), device=device)
-    plt.figure(figsize=(15, 15))
-    plt.axis('off')
-    num_images = 10
-    stepsize = int(args.T / num_images)
-
-    for i in range(0, args.T)[::-1]:
-        t = torch.full((1,), i, device=device, dtype=torch.long)
-        img = trainer.sample_timestep(img, t)
-        if i % stepsize == 0:
-            plt.subplot(1, num_images, int(i / stepsize) + 1)
-            show_tensor_image(img.detach().cpu())
-    plt.show()
-
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
+#TODO: move these inside the dataset class!
 data_transforms = [
         transforms.Resize((args.IMG_SIZE, args.IMG_SIZE)),
         transforms.RandomHorizontalFlip(),
@@ -102,20 +72,25 @@ dataloader = DataLoader(data, batch_size=args.BATCH_SIZE, shuffle=True, drop_las
 # plt.show()
 # print("Done simulating forward diffusion.")
 
-trainer = Trainer("model", args.T, args.START, args.END, args.IMG_SIZE, args.BATCH_SIZE)
+trainer = Trainer(args.model_dir, args.T, args.START, args.END, args.IMG_SIZE, args.BATCH_SIZE)
+last_checkpoint = trainer.find_last_checkpoint()
+
+# trainer.clear_checkpoints()
+# trainer.save_checkpoint()
 
 if args.restart_training:
-    trainer.save_checkpoint()
+    trainer.clear_checkpoints()
 else:
     trainer.load_checkpoint()
 
 for epoch in tqdm(range(args.epochs)):
     for step, batch in  enumerate(dataloader):
         loss = trainer.training_step(batch[0])
+        # trainer.log_history(loss)
         print(f"epoch {epoch}, step {step}, loss: {loss}")
         if epoch % 1 == 0 and step == 0:
             trainer.save_checkpoint()
+            trainer.log_history(loss)
             print(f"Epoch {epoch} | step {step:03d} Loss: {loss} ")
-            sample_plot_image(trainer, device)
 
 
