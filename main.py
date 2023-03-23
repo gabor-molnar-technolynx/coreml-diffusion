@@ -8,17 +8,16 @@ from trainer import Trainer
 from tqdm import tqdm
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--export_model", action="store_true", help="force training on CPU")
 parser.add_argument("--restart_training", action="store_true", help="force training on CPU")
 parser.add_argument("--train", action="store_true", help="force training on CPU")
 parser.add_argument("--epochs", default=50, type=int, help="number of training epochs")
 #TODO: save different checkpoint dirs and images sampled at that checkpoint!
 parser.add_argument("--model_dir", default="model", help="Directory to save the checkpoints in.")
 parser.add_argument("--T", default=300, type=int, help="Number of timesteps.")
-parser.add_argument("--IMG_SIZE", default=32, type=int, help="Height and width of the images to train with.")
+parser.add_argument("--IMG_SIZE", default=64, type=int, help="Height and width of the images to train with.")
 parser.add_argument("--BATCH_SIZE", default=2, type=int, help="Batch count for the training process.")
-parser.add_argument("--START", default=0.0001, type=float, help="Beta at the first timestep.")
-parser.add_argument("--END", default=0.02, type=float, help="Beta at the last timestep.")
+parser.add_argument("--START_B", default=0.0001, type=float, help="Beta at the first timestep.")
+parser.add_argument("--END_B", default=0.02, type=float, help="Beta at the last timestep.")
 parser.add_argument("--data_path", default="../../YoutubeProj/data/CelebAMask-HQ/CelebAMask-HQ/CelebA-HQ-img",
                     help="Path to the dataset folder.")
 args = parser.parse_args()
@@ -72,8 +71,8 @@ dataloader = DataLoader(data, batch_size=args.BATCH_SIZE, shuffle=True, drop_las
 # plt.show()
 # print("Done simulating forward diffusion.")
 
-trainer = Trainer(args.model_dir, args.T, args.START, args.END, args.IMG_SIZE, args.BATCH_SIZE)
-last_checkpoint = trainer.find_last_checkpoint()
+trainer = Trainer(args.model_dir, args.T, args.START_B, args.END_B, args.IMG_SIZE, args.BATCH_SIZE)
+# last_checkpoint = trainer.find_last_checkpoint()
 
 # trainer.clear_checkpoints()
 # trainer.save_checkpoint()

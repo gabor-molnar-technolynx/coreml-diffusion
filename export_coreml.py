@@ -1,29 +1,28 @@
 import torch
-import os
-from unet import SimpleUnet
-from torch.optim import Adam
+from trainer import Trainer
 import coremltools as ct
+import argparse
+import os
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--model_dir", default="model", help="Directory to save the checkpoints in.")
+parser.add_argument("--IMG_SIZE", default=64, type=int, help="Height and width of the images to train with.")
+parser.add_argument("--BATCH_SIZE", default=2, type=int, help="Batch count for the training process.")
+parser.add_argument("--START_B", default=0.0001, type=float, help="Beta at the first timestep.")
+parser.add_argument("--END_B", default=0.02, type=float, help="Beta at the last timestep.")
+args = parser.parse_args()
+
+trainer = Trainer(args.model_dir, 0, args.START_B, args.END_B, args.IMG_SIZE, args.BATCH_SIZE)
 
 
-def load_checkpoint():
-    if os.path.isfile(os.path.join("model", "model.pt")) and os.path.isfile(os.path.join("model", "opt.pt")):
-        if not torch.cuda.is_initialized():
-            map_device = torch.device("cpu")
-        else:
-            map_device = torch.device("cuda:0")
+trainer.load_checkpoint()
+model = trainer.model
 
-        model.load_state_dict(torch.load(os.path.join("model", "model.pt"), map_location=map_device))
-        optimizer.load_state_dict(torch.load(os.path.join("model", "opt.pt"), map_location=map_device))
-
-
-
-model = SimpleUnet()
-optimizer = Adam(model.parameters(), lr=0.001)
-load_checkpoint()
-
-
-dummy_img = torch.rand((2,3,64,64)).float()
+# Create dummy inputs for tracing the model.
+dummy_img = torch.rand((1, 3, args.IMG_SIZE, args.IMG_SIZE)).float()
 dummy_timestep = torch.randint(0, 100, (2,)).long()
+
+# Trace the model.
 model_ts = torch.jit.trace(model, (dummy_img, dummy_timestep))
 model_ct = ct.convert(model_ts,
                               inputs=[ct.TensorType(name="img_input", shape=dummy_img.shape),
@@ -31,3 +30,12 @@ model_ct = ct.convert(model_ts,
                               outputs=[
                                   ct.TensorType(name="noise_prediction")])
 
+mlmodel_path = os.path.join(args.model_dir, "model.mlmodel")
+model_ct.save(mlmodel_path)
+model_ct = ct.models.MLModel(mlmodel_path)
+# Scaling
+input_scale = ((1.0 / 255.0) * 2) - 1 # scale input to range [0, 1]
+output_scale = 1.0 / 100.0  # scale output to range [0, 100]
+model_ct = ct.models.MLModel(model=model_ct, input_scale=input_scale, output_scale=output_scale)
+# compute units
+model = ct.models.MLModel(model=model, preferred_devices=['cpu'])

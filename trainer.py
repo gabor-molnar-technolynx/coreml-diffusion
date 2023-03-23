@@ -101,7 +101,6 @@ class Trainer():
         torch.save(self.optimizer.state_dict(), os.path.join(checkpoint_path, "opt.pt"))
         torch.save(self.model.state_dict(), os.path.join(checkpoint_path, "model.pt"))
         print("Model checkpoint saved successfully.")
-        #TODO: dont forget to reenable for training
         self.save_samples(checkpoint_path)
 
     def load_checkpoint(self):
