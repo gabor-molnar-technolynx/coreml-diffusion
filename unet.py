@@ -93,4 +93,6 @@ class SimpleUnet(nn.Module):
             # Add residual x as additional channels
             x = torch.cat((x, residual_x), dim=1)
             x = up(x, t)
-        return self.output(x)
+
+        x = self.output(x)
+        return x

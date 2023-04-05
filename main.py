@@ -75,7 +75,7 @@ trainer = Trainer(args.model_dir, args.T, args.START_B, args.END_B, args.IMG_SIZ
 # last_checkpoint = trainer.find_last_checkpoint()
 
 # trainer.clear_checkpoints()
-# trainer.save_checkpoint()
+trainer.save_checkpoint()
 
 if args.restart_training:
     trainer.clear_checkpoints()
