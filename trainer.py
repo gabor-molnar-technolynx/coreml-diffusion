@@ -8,6 +8,7 @@ from matplotlib import pyplot as plt
 from torchvision import transforms
 import numpy as np
 
+
 class Trainer():
     def __init__(self, model_dir, t_steps, t_start, t_end, img_size, batch_size):
         self.model_dir = model_dir
@@ -37,25 +38,23 @@ class Trainer():
         self.T_END = t_end
         self.T_STEPS = t_steps
 
-
     @torch.no_grad()
     def save_samples(self, checkpoint_path):
-            # Sample noise
-            img_size = self.IMG_SIZE
-            img = torch.randn((1, 3, img_size, img_size), device=self.map_device)
-            num_images = 10
-            fig, ax = plt.subplots(num_images)
-            stepsize = int(self.T_STEPS / num_images)
+        # Sample noise
+        img_size = self.IMG_SIZE
+        img = torch.randn((1, 3, img_size, img_size), device=self.map_device)
+        num_images = 10
+        fig, ax = plt.subplots(num_images)
+        stepsize = int(self.T_STEPS / num_images)
 
-            for i in range(0, self.T_STEPS)[::-1]:
-                t = torch.full((1,), i, device=self.map_device, dtype=torch.long)
-                img = self.sample_timestep(img, t)
-                if i % stepsize == 0:
-                    plt.subplot(1, num_images, int(i / stepsize) + 1)
-                    ax[ int(i / stepsize)] = plt.imshow(self.to_tensor_image(img.detach().cpu()))
-            # plt.show()
-            fig.savefig(os.path.join(checkpoint_path, "test_samples.png"))
-
+        for i in range(0, self.T_STEPS)[::-1]:
+            t = torch.full((1,), i, device=self.map_device, dtype=torch.long)
+            img = self.sample_timestep(img, t)
+            if i % stepsize == 0:
+                plt.subplot(1, num_images, int(i / stepsize) + 1)
+                ax[int(i / stepsize)] = plt.imshow(self.to_tensor_image(img.detach().cpu()))
+        # plt.show()
+        fig.savefig(os.path.join(checkpoint_path, "test_samples.png"))
 
     def to_tensor_image(self, image):
         reverse_transforms = transforms.Compose([
@@ -93,7 +92,6 @@ class Trainer():
 
         plt.savefig(plot_fname)
 
-
     def save_checkpoint(self):
         idx = self.find_last_checkpoint() + 1
         checkpoint_path = os.path.join(self.model_dir, str(idx))
@@ -107,8 +105,10 @@ class Trainer():
         idx = self.find_last_checkpoint()
         if idx > 0:
             checkpoint_path = os.path.join(self.model_dir, str(idx))
-            self.model.load_state_dict(torch.load(os.path.join(checkpoint_path, "model.pt"), map_location=self.map_device))
-            self.optimizer.load_state_dict(torch.load(os.path.join(checkpoint_path, "opt.pt"), map_location=self.map_device))
+            self.model.load_state_dict(
+                torch.load(os.path.join(checkpoint_path, "model.pt"), map_location=self.map_device))
+            self.optimizer.load_state_dict(
+                torch.load(os.path.join(checkpoint_path, "opt.pt"), map_location=self.map_device))
             print(f"Model checkpoint loaded successfully. Continuing from checkpoint {idx}")
         else:
             print("There was no checkpoint to load, using newly initialized model weights.")
@@ -145,7 +145,7 @@ class Trainer():
         sqrt_one_minus_alphas_cumprod_t = self.get_index_from_list(self.sqrt_one_minus_alphas_cumprod, t, x_0.shape)
         # mean + variance
         return sqrt_alphas_cumprod_t.to(self.map_device) * x_0.to(self.map_device) \
-               + sqrt_one_minus_alphas_cumprod_t.to(self.map_device) * noise.to(self.map_device),\
+               + sqrt_one_minus_alphas_cumprod_t.to(self.map_device) * noise.to(self.map_device), \
                noise.to(self.map_device)
 
     def get_loss(self, model, x_0, t):
