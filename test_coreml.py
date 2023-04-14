@@ -58,5 +58,5 @@ def sample_timestep(x, t):
 
 trainer = Trainer(args.model_dir, 0, args.START_B, args.END_B, args.IMG_SIZE, args.BATCH_SIZE)
 print("loading model...")
-unet_ct = ct.models.MLModel(os.path.join(args.model_dir, "model.mlmodel"), compute_units=ct.ComputeUnit.CPU_ONLY)
+unet_ct = ct.models.MLModel(os.path.join(args.model_dir, "model.mlmodel"))
 save_samples()
