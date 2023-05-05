@@ -1,0 +1,121 @@
+<!<!DOCTYPE html>
+<html>
+    <header>
+        <title>ONNX Runtime JavaScript examples: Quick Start - Web (using script tag)</title>
+    </header>
+    <body>
+        <p id="demo"></p>
+        <script>
+          function onOrtLoaded() {
+            console.log('ORT.js loaded successfully.');
+          }
+        </script>
+        <!-- import ONNXRuntime Web from CDN -->
+        <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js" onload="onOrtLoaded()"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.0.0/dist/tf.min.js"></script>
+<!--        <script src="https://cdn.jsdelivr.net/npm/onnxjs/dist/onnx.min.js"></script>-->
+<!--        <script src="https://cdn.jsdelivr.net/npm/onnxjs@0.1.7/dist/onnx.min.js"></script>-->
+
+
+        <script>
+            // use an async context to call onnxruntime functions.
+            async function main() {
+                try {
+
+                    const modelUrl = '../model/model.onnx';
+                    const session = await ort.InferenceSession.create(modelUrl);
+<!--                    console.log(session);-->
+
+                    const input_img = tf.randomNormal([1,3,64,64]);
+                    const input_t = tf.randomNormal([90]);
+                    // Create an ONNX tensor from each input tensor
+
+<!--                    const tensor_img = new ort.Tensor(input_img.dataSync(), 'float32', input_img.shape);-->
+<!--                    const tensor_t = new ort.Tensor(input_t.dataSync(), 'float32', input_t.shape);-->
+
+                    var  data_img = new Float32Array(64 * 64 * 3);
+                    var  data_t = new BigInt64Array (1);
+                    const tensor_img = new ort.Tensor('float32', data_img, [1,3,64,64]);
+                    const tensor_t = new ort.Tensor('int64', data_t, [1]);
+
+                    const feeds = { img_input: tensor_img, timestep_input: tensor_t }
+
+                    const results = await session.run(feeds);
+                    console.log("results from session.run");
+                    console.log(results)
+                    // read from results
+                    const dataC = results.c.data;
+                    document.write(`data of result tensor 'c': ${dataC}`);
+
+<!--                    const dataA = Float32Array.from([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);-->
+<!--                    const dataB = Float32Array.from([10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120]);-->
+<!--                    const tensorA = new ort.Tensor('float32', dataA, [3, 4]);-->
+<!--                    const tensorB = new ort.Tensor('float32', dataB, [4, 3]);-->
+
+<!--                    // prepare feeds. use model input names as keys.-->
+<!--                    const feeds = { a: tensorA, b: tensorB };-->
+
+<!--                    // feed inputs and run-->
+<!--                    const results = await session.run(feeds);-->
+
+<!--                    // read from results-->
+<!--                    const dataC = results.c.data;-->
+<!--                    document.write(`data of result tensor 'c': ${dataC}`);-->
+
+                } catch (e) {
+                    document.write(`failed to inference ONNX model: ${e}.`);
+                }
+            }
+
+            main();
+        </script>
+
+
+<!--        <script>-->
+<!--            console.log("onnx version check:");-->
+<!--            console.log(onnx);-->
+<!--            const modelUrl = '../model/model.onnx';-->
+<!--            const session = new onnx.InferenceSession();-->
+<!--            console.log("session initialized");-->
+<!--            console.log("session starting");-->
+<!--            session.loadModel(modelUrl);-->
+<!--            console.log(session)-->
+<!--            session.loadModel(modelUrl).then(() => {-->
+<!--                console.log("in session");-->
+<!--                console.log(session);-->
+<!--                // Model loaded successfully, create input tensors and run the model-->
+<!--                // Create input tensors with random data-->
+<!--                const input_img = tf.randomNormal([1,3,64,64]);-->
+<!--                const input_t = tf.randomNormal([90]);-->
+<!--                // Create an ONNX tensor from each input tensor-->
+<!--                const tensor_img = new Tensor(input_img.dataSync(), 'float32', input_img.shape);-->
+<!--                const tensor_t = new Tensor(input_t.dataSync(), 'float32', input_t.shape);-->
+<!--                session.run([tensor_img, tensor_t]).then(output => {-->
+<!--                    const outputTensor = output.values().next().value;-->
+<!--                    console.log(`model output tensor: ${outputTensor.data}.`);-->
+<!--                    }).catch(err => {-->
+<!--                    console.log(err);-->
+<!--                    });-->
+<!--                    }).catch(err => {-->
+<!--                    console.log(err);-->
+<!--            });-->
+
+
+<!--        </script>-->
+<!--        <script>-->
+<!--          // create a session-->
+<!--          const myOnnxSession = new onnx.InferenceSession();-->
+<!--          // load the ONNX model file-->
+<!--          myOnnxSession.loadModel('../model/model.onnx').then(() => {-->
+<!--            // generate model input-->
+<!--            const inferenceInputs = getInputs();-->
+<!--            // execute the model-->
+<!--            myOnnxSession.run(inferenceInputs).then((output) => {-->
+<!--              // consume the output-->
+<!--              const outputTensor = output.values().next().value;-->
+<!--              console.log(`model output tensor: ${outputTensor.data}.`);-->
+<!--            });-->
+<!--          });-->
+<!--    </script>-->
+    </body>
+</html>

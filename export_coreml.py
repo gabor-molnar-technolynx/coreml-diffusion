@@ -26,8 +26,7 @@ model_ts = torch.jit.trace(model, (dummy_img, dummy_timestep))
 model_ct = ct.convert(model_ts,
                       inputs=[ct.TensorType(name="img_input", shape=dummy_img.shape),
                               ct.TensorType(name="timestep_input", shape=dummy_timestep.shape)],
-                      outputs=[
-                          ct.TensorType(name="noise_prediction")])
+                      outputs=[ct.TensorType(name="noise_prediction")])
 
 mlmodel_path = os.path.join(args.model_dir, "model.mlmodel")
 model_ct.save(mlmodel_path)
