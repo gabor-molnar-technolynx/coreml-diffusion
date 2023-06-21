@@ -5,16 +5,10 @@
     </header>
     <body>
         <p id="demo"></p>
-<!--        <script>-->
-<!--          function onOrtLoaded() {-->
-<!--            console.log('ORT.js loaded successfully.');-->
-<!--          }-->
-<!--        </script>-->
         <!-- import ONNXRuntime Web from CDN -->
-<!--        <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js" onload="onOrtLoaded()"></script>-->
-        <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
+<!--        <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>-->
+        <script src="https://cdn.jsdelivr.net/npm/@microsoft/onnxruntime-web/dist/ort-web-webgl.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.0.0/dist/tf.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/@microsoft/onnxruntime-web-webgl/dist/ort-web-webgl.js"></script>
 <!--        <script src="https://cdn.jsdelivr.net/npm/onnxjs/dist/onnx.min.js"></script>-->
 <!--        <script src="https://cdn.jsdelivr.net/npm/onnxjs@0.1.7/dist/onnx.min.js"></script>-->
 
@@ -23,13 +17,9 @@
             // use an async context to call onnxruntime functions.
             async function main() {
                 try {
-                    ort.env.logSeverity = 'verbose'
+
                     const modelUrl = '../model/model.onnx';
-<!--                    const session = await ort.InferenceSession.create(modelUrl);-->
-
-                    const session = await ort.InferenceSession.create(modelUrl, { executionProviders: ['webgl'] });
-<!--                    console.log(ort.webgl.supportedOps);-->
-
+                    const session = await ort.InferenceSession.create(modelUrl);
 
                     var  data_img = new Float32Array(64 * 64 * 3);
                     var  data_t = new BigInt64Array (1);
@@ -38,10 +28,6 @@
 
                     const feeds = { img_input: tensor_img, timestep_input: tensor_t }
                     const start = Date.now();
-
-                    for (let i = 0; i < 100; i++) {
-                      await session.run(feeds);
-                    }
                     const results = await session.run(feeds);
                     const end = Date.now();
                     console.log(`Execution time: ${end - start} ms`);

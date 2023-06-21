@@ -5,6 +5,7 @@ import os
 import torch
 import onnx
 import onnxruntime
+import onnxruntime.tools
 import onnxoptimizer
 
 import time
@@ -85,3 +86,18 @@ except onnx.checker.ValidationError as e:
     print("The model is invalid: %s" % e)
 else:
     print("The model is valid!")
+
+# WebGL check:
+sess = onnxruntime.InferenceSession(output_path)
+# Get the list of unsupported operators used by the model
+provider = onnxruntime.get_available_providers()
+print(provider)
+print("sodone")
+# if 'WebGLExecutionProvider' in provider:
+#     unsupported_ops = sess.get_providers(['WebGLExecutionProvider'])[0].get_unsupported_node_count(sess.get_inputs())
+#     if unsupported_ops > 0:
+#         print(f"The model uses {unsupported_ops} unsupported operators")
+#     else:
+#         print("The model is compatible with the WebGL backend")
+# else:
+#     print("The WebGLExecutionProvider is not available in this installation of ONNX Runtime")
